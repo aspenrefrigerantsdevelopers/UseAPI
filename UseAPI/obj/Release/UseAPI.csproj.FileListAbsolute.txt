@@ -1,0 +1,16 @@
+C:\projects\_InDev\UseAPI\UseAPI\bin\UseAPI.dll.config
+C:\projects\_InDev\UseAPI\UseAPI\bin\UseAPI.dll
+C:\projects\_InDev\UseAPI\UseAPI\bin\UseAPI.pdb
+C:\projects\_InDev\UseAPI\UseAPI\obj\Release\UseAPI.csprojResolveAssemblyReference.cache
+C:\projects\_InDev\UseAPI\UseAPI\obj\Release\UseAPI.dll
+C:\projects\_InDev\UseAPI\UseAPI\obj\Release\UseAPI.pdb
+C:\projects\_InDev\UseAPI\UseAPI\bin\BouncyCastle.Crypto.dll
+C:\projects\_InDev\UseAPI\UseAPI\bin\Common.Logging.Core.dll
+C:\projects\_InDev\UseAPI\UseAPI\bin\Common.Logging.dll
+C:\projects\_InDev\UseAPI\UseAPI\bin\itextsharp.dll
+C:\projects\_InDev\UseAPI\UseAPI\bin\BouncyCastle.Crypto.xml
+C:\projects\_InDev\UseAPI\UseAPI\bin\Common.Logging.pdb
+C:\projects\_InDev\UseAPI\UseAPI\bin\Common.Logging.xml
+C:\projects\_InDev\UseAPI\UseAPI\bin\Common.Logging.Core.pdb
+C:\projects\_InDev\UseAPI\UseAPI\bin\Common.Logging.Core.xml
+C:\projects\_InDev\UseAPI\UseAPI\bin\itextsharp.xml
