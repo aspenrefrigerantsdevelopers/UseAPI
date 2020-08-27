@@ -329,7 +329,7 @@ namespace UseAPI
                     postValues.Add($"units[{count}][details][length]", "1");
                     postValues.Add($"units[{count}][details][width]", "1");
                     postValues.Add($"units[{count}][details][height]", "1");
-                    postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()} {dr.ItemArray[32].ToString()}");
+                    postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()}");
                     postValues.Add($"units[{count}][products][0][pieces]", dr.ItemArray[29].ToString());
                     postValues.Add($"units[{count}][products][0][uom]", "Cylinder");
                     postValues.Add($"units[{count}][products][0][nmfc]", dr.ItemArray[40].ToString());
@@ -337,9 +337,10 @@ namespace UseAPI
                     postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[41].ToString());
                     postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[31].ToString());
                     postValues.Add($"units[{count}][products][0][hazmat]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][class]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][un_num]", "");
+                    postValues.Add($"units[{count}][products][0][hazmat][class]", dr.ItemArray[51].ToString()); /* 2.2 */
+                    postValues.Add($"units[{count}][products][0][hazmat][un_num]", dr.ItemArray[52].ToString());/* UN */
                     postValues.Add($"units[{count}][products][0][hazmat][group]", "");
+                    postValues.Add($"units[{count}][products][0][hazmat][packing_inst]", $"{ dr.ItemArray[32].ToString()}");
                     postValues.Add($"units[{count}][products][0][hazmat][emergency]", "Chemtrec 1-800-424-9300 CCN829305");
                     count++;
                 }
@@ -727,7 +728,7 @@ namespace UseAPI
                     postValues.Add($"units[{count}][details][length]", "1");
                     postValues.Add($"units[{count}][details][width]", "1");
                     postValues.Add($"units[{count}][details][height]", "1");
-                    postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()} {dr.ItemArray[32].ToString()}");
+                    postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()}");
                     postValues.Add($"units[{count}][products][0][pieces]", dr.ItemArray[29].ToString());
                     postValues.Add($"units[{count}][products][0][uom]", "Cylinder");
                     postValues.Add($"units[{count}][products][0][nmfc]", dr.ItemArray[40].ToString());
@@ -735,9 +736,10 @@ namespace UseAPI
                     postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[41].ToString());
                     postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[31].ToString());
                     postValues.Add($"units[{count}][products][0][hazmat]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][class]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][un_num]", "");
+                    postValues.Add($"units[{count}][products][0][hazmat][class]", dr.ItemArray[51].ToString()); /* 2.2 */
+                    postValues.Add($"units[{count}][products][0][hazmat][un_num]", dr.ItemArray[52].ToString());/* UN */
                     postValues.Add($"units[{count}][products][0][hazmat][group]", "");
+                    postValues.Add($"units[{count}][products][0][hazmat][packing_inst]", $"{ dr.ItemArray[32].ToString()}");
                     postValues.Add($"units[{count}][products][0][hazmat][emergency]", "Chemtrec 1-800-424-9300 CCN829305");
                     count++;
                 }
