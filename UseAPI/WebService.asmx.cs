@@ -71,6 +71,7 @@ namespace UseAPI
             }
             return result;
         }
+
         [WebMethod]
         public string getFreight()
         {
@@ -88,6 +89,17 @@ namespace UseAPI
         }
 
         [WebMethod]
+        public string TargetCarrier_PrintAndEmailDocuments(string orderNumber, string BolId, string BolDate, string copies)
+        {
+            freight_API freight = new freight_API();
+            string bolResult = freight.PrintBillOfLading(BolId, BolDate);
+            string bolLabelResult = freight.PrintLabel(BolId, BolDate, copies);
+            string filePath = $"{bolResult};{bolLabelResult}";
+            string emailResult = freight.SendEmailWithBOLAttachment(orderNumber, filePath, "This is a test. Please ignore. This is a test " );
+            return $"BOL Filepath - {bolResult} Label Filepath - {bolResult} email - {emailResult}";
+        }
+
+        [WebMethod]
         public string TargetCarrier_GetTargetFreightWithBOLwithOrderNumber(string orderNumber)
         {
             string queryID = "0";
@@ -95,6 +107,21 @@ namespace UseAPI
             queryID = freight.Target_Carrier_GetQueryID(orderNumber);
             string bol = freight.ExecuteBillsOfLading(queryID);
             return bol;
+        }
+
+        [WebMethod]
+        public string TargetCarrier_PrintLabel(string BolId, string BolDate, string copies)
+        {
+            freight_API freight = new freight_API();
+            string result = freight.PrintLabel(BolId, BolDate, copies);
+            return result;
+        }
+        [WebMethod]
+        public string TargetCarrier_PrintBillOfLading(string BolId, string BolDate)
+        {
+            freight_API freight = new freight_API();
+            string result = freight.PrintBillOfLading(BolId, BolDate);
+            return result;
         }
 
         [WebMethod]
@@ -109,11 +136,11 @@ namespace UseAPI
         public string getTargetFreightWithBOL()
         {
             freight_API freight = new freight_API();
-            freight.shipperZip = "32254";
-            freight.consigneeZip = "30339";
-            freight.weight = "55";
+            freight.shipperZip = "53207";
+            freight.consigneeZip = "59411";
+            freight.weight = "2716";
             freight.freightClass = "110";
-            freight.orderNumber = "2213260";
+            freight.orderNumber = "2223270";
             DataTable dt = freight.GetTargetFreightwithBOL(freight);
 
             string queryID = "0";

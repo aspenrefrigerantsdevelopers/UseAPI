@@ -9,6 +9,7 @@ using System.Data.SqlClient;
 using System.Data;
 using System.Collections.Specialized;
 using System.Configuration;
+using System.Text.RegularExpressions;
 
 namespace UseAPI
 {
@@ -263,14 +264,18 @@ namespace UseAPI
 
             DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_BOL_Data", parameter);
             int count = 0;
+            var nmfc = "0";
+            var subnmfc = "";
+            string copies = "0";
+
             foreach (DataTable dt in dsBOL.Tables)
             {
-                orderNumber = dt.Rows[0].ItemArray[7].ToString();
+                orderNumber = Regex.Replace(dt.Rows[0].ItemArray[7].ToString(),"-","");
                 postValues.Add("carrier[query_id]", queryID);
                 postValues.Add("carrier[carrier_scac]", dt.Rows[0].ItemArray[39].ToString());
                 postValues.Add("general[pro]", "");
                 postValues.Add("general[saved_bol]", "");
-                postValues.Add("general[bol]", "");
+                postValues.Add("general[bol]", dt.Rows[0].ItemArray[18].ToString());
                 postValues.Add("general[ref]", "");
                 postValues.Add("general[warehouse]", "ASPENLIC");
                 postValues.Add("general[direction]", dt.Rows[0].ItemArray[50].ToString());
@@ -323,6 +328,14 @@ namespace UseAPI
 
                 foreach (DataRow dr in dt.Rows)
                 {
+                    nmfc = dr.ItemArray[40].ToString();
+                    if (nmfc == "41160")
+                    {
+                        subnmfc = "02";
+                    }else
+                    {
+                        subnmfc = "";
+                    }
                     postValues.Add($"units[{count}][details][pieces]", "1");
                     postValues.Add($"units[{count}][details][stack]", "False");
                     postValues.Add($"units[{count}][details][type]", "Pallet");
@@ -332,8 +345,8 @@ namespace UseAPI
                     postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()}");
                     postValues.Add($"units[{count}][products][0][pieces]", dr.ItemArray[29].ToString());
                     postValues.Add($"units[{count}][products][0][uom]", "Cylinder");
-                    postValues.Add($"units[{count}][products][0][nmfc]", dr.ItemArray[40].ToString());
-                    postValues.Add($"units[{count}][products][0][sub_nmfc]", "");
+                    postValues.Add($"units[{count}][products][0][nmfc]", nmfc);
+                    postValues.Add($"units[{count}][products][0][sub_nmfc]", subnmfc);
                     postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[41].ToString());
                     postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[31].ToString());
                     postValues.Add($"units[{count}][products][0][hazmat]", "");
@@ -404,9 +417,11 @@ namespace UseAPI
                 }
                 //bolId = $"{bolDate}{bolId}";
                 string pickupStatus = PickupRequest(queryID, $"{bolDate}{bolId}");
-                string bolPDF = PrintBillOfLading(bolId, bolDate);
-                SendEmailWithBOLAttachment(orderNumber, bolPDF, $"QueryID-{queryID}|{pickupStatus}|Filepath - {bolPDF}");
-                return $"Pickup Response - {pickupStatus} - Print PDF Response - {bolPDF}";
+                string bolResult = PrintBillOfLading(bolId, bolDate);
+                string bolLabelResult = PrintLabel(bolId, bolDate, "1");
+                string filePath = $"{bolResult};{bolLabelResult}";
+                SendEmailWithBOLAttachment(orderNumber, filePath, $"{pickupStatus}");
+                return $"Pickup Response - {pickupStatus} - Print PDF filepaths - {filePath}";
             }
         }
 
@@ -426,6 +441,61 @@ namespace UseAPI
             DateTime datetimmstamp = DateTime.Now;
             if (local=="dev")
             {   
+                //fileDirectory = @"\\10.186.130.3\C-Print_Files\";
+                fileDirectory = @"C:\_TargetBOL";
+            }
+            else
+            {
+                fileDirectory = @"\\172.20.92.150\Print_Files\";
+            }
+            fileDirectory = @"\\172.20.92.150\Print_Files\";
+            fp = $@"{fileDirectory}\{fn}";
+
+            HttpWebRequest req = (HttpWebRequest)HttpWebRequest.Create(strURL);
+            req.ContentType = "application/pdf";
+            req.Method = "Post";
+            req.Headers[HttpRequestHeader.Authorization] = $"Basic {Convert.ToBase64String(authBytes)}";
+
+            using (HttpWebResponse resp = (HttpWebResponse)req.GetResponse())
+            {
+                using (Stream str = resp.GetResponseStream())
+                {
+                    using (var mm = new MemoryStream())
+                    {
+                        str.CopyTo(mm);
+                        byte[] b = mm.ToArray();
+                        FileStream fs = new FileStream(fp, FileMode.Create, FileAccess.Write);
+
+                        if (fs.CanWrite)
+                        {
+                            fs.Write(b, 0, b.Length);
+                        }
+
+                        fs.Flush();
+                        fs.Close();
+                    }
+                }
+            }
+            return $"{fp}";
+
+        }
+
+        public string PrintLabel(string BolId, string BolDate, string copies)
+        {
+            freight_API freight = new freight_API();
+            string local = freight.IsLocal();
+            //string auth = System.Configuration.ConfigurationManager.AppSettings["TargetAuth"];
+            string url = $"Http://targetfmitms.com/index.php?p=api&r=text&c=billoflading&m=labelPDF&d={BolId}/{BolDate}/{copies}";
+            string strURL = string.Format($"{url}");
+            String pwd = String.Format("{0}:{1}", "d5db5543-af3c-4eb6-8073-fc0e98195f06", "");
+            string fp;
+            string fn = $"BillOfLadingLabel_{BolDate}{BolId}.pdf";
+            string fileDirectory;
+            Byte[] authBytes = Encoding.UTF8.GetBytes(pwd.ToCharArray());
+
+            DateTime datetimmstamp = DateTime.Now;
+            if (local == "dev")
+            {
                 //fileDirectory = @"\\10.186.130.3\C-Print_Files\";
                 fileDirectory = @"C:\_TargetBOL";
             }
@@ -659,17 +729,19 @@ namespace UseAPI
             string transactionID = "0";
             string pickupdate = "0";
             string expectedDeliveryDate = "0";
+            var nmfc = "0";
+            var subnmfc = "";
 
             DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_BOL_Data", parameter);
             int count = 0;
             foreach (DataTable dt in dsBOL.Tables)
             {
-                orderNumber = dt.Rows[0].ItemArray[7].ToString();
+                orderNumber = Regex.Replace(dt.Rows[0].ItemArray[7].ToString(), "-", "");
                 postValues.Add("carrier[query_id]", queryID);
                 postValues.Add("carrier[carrier_scac]", dt.Rows[0].ItemArray[39].ToString());
                 postValues.Add("general[pro]", "");
                 postValues.Add("general[saved_bol]", bolId);
-                postValues.Add("general[bol]", "");
+                postValues.Add("general[bol]", dt.Rows[0].ItemArray[18].ToString());
                 postValues.Add("general[ref]", "");
                 postValues.Add("general[warehouse]", "ASPENLIC");
                 postValues.Add("general[direction]", dt.Rows[0].ItemArray[50].ToString());
@@ -685,9 +757,9 @@ namespace UseAPI
                 postValues.Add("location[shipper][name]", dt.Rows[0].ItemArray[23].ToString());
                 postValues.Add("location[shipper][address1]", dt.Rows[0].ItemArray[24].ToString());
                 postValues.Add("location[shipper][address2]", dt.Rows[0].ItemArray[25].ToString());
-                postValues.Add("location[shipper][city]", dt.Rows[0].ItemArray[44].ToString());
-                postValues.Add("location[shipper][state]", dt.Rows[0].ItemArray[45].ToString());
-                postValues.Add("location[shipper][zip]", dt.Rows[0].ItemArray[42].ToString());
+                postValues.Add("location[shipper][city]", dt.Rows[0].ItemArray[46].ToString());
+                postValues.Add("location[shipper][state]", dt.Rows[0].ItemArray[47].ToString());
+                postValues.Add("location[shipper][zip]", dt.Rows[0].ItemArray[43].ToString());
                 postValues.Add("location[shipper][country]", "USA");
                 postValues.Add("location[shipper][contact_name]", "");
                 postValues.Add("location[shipper][contact_phone]", "");
@@ -722,6 +794,15 @@ namespace UseAPI
 
                 foreach (DataRow dr in dt.Rows)
                 {
+                    nmfc = dr.ItemArray[40].ToString();
+                    if (nmfc == "41160")
+                    {
+                        subnmfc = "02";
+                    }
+                    else
+                    {
+                        subnmfc = "";
+                    }
                     postValues.Add($"units[{count}][details][pieces]", "1");
                     postValues.Add($"units[{count}][details][stack]", "False");
                     postValues.Add($"units[{count}][details][type]", "Pallet");
@@ -731,8 +812,8 @@ namespace UseAPI
                     postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()}");
                     postValues.Add($"units[{count}][products][0][pieces]", dr.ItemArray[29].ToString());
                     postValues.Add($"units[{count}][products][0][uom]", "Cylinder");
-                    postValues.Add($"units[{count}][products][0][nmfc]", dr.ItemArray[40].ToString());
-                    postValues.Add($"units[{count}][products][0][sub_nmfc]", "");
+                    postValues.Add($"units[{count}][products][0][nmfc]", nmfc);
+                    postValues.Add($"units[{count}][products][0][sub_nmfc]", subnmfc);
                     postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[41].ToString());
                     postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[31].ToString());
                     postValues.Add($"units[{count}][products][0][hazmat]", "");
@@ -779,12 +860,15 @@ namespace UseAPI
                 }
             }
 
-            int okContinue = result.IndexOf("<type>error</type>"); // if -1 returned no errors found
-            if (okContinue != -1)
+            int okContinue = result.IndexOf("<type>success</type>"); // if -1 returned no errors found
+            if (okContinue == -1)
             {
-                return $"FREIGHT_API.CS ERROR ALERT - CONTACT IT - {result}";
+                //result = Regex.Replace(result, @"[^0-9a-zA-Z]+", "-----");
+                result = Regex.Replace(result, "<message>", "<br><font color='red'><b>ERROR MESSAGE----- ");
+                result = Regex.Replace(result, "</message>", " -----ERROR MESSAGE</b></font><br>");
+                return $"<font color='red'><b>Pickup Request Error</b></font><br> - FREIGHT_API.CS ERROR ALERT - CONTACT IT - {result}";
             }
-            else
+            else // -1 returned no errors 
             {
                 DataSet ds = new DataSet();
                 ds.ReadXml(new MemoryStream(System.Text.ASCIIEncoding.Default.GetBytes(result)));
