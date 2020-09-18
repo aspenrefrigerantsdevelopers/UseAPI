@@ -31,18 +31,12 @@ namespace UseAPI
 
 
         [WebMethod]
-        public void TargetBOL_ExecuteBillsOfLading(int OrderNumber)
+        public string TargetCarrier_ExecuteBillsOfLading(string orderNumber)
         {
-            JavaScriptSerializer js = new JavaScriptSerializer();
-            //try
-            //{
-            //    Context.Response.Write(js.Serialize(letter.BuyBackLetters_GetPO_Information(RHSId)));
-            //}
-            //catch (Exception e)
-            //{
-            //    string err = $"Error {e.Message} Error Data {e.Data.ToString()} E - {e.ToString()} ";
-            //    Context.Response.Write(err);
-            //}
+            freight_API freight = new freight_API();
+            freight.orderNumber = orderNumber;
+            freight = freight.ExecuteBillsOfLading(freight);
+            return freight.comment;
         }
 
 
@@ -102,11 +96,16 @@ namespace UseAPI
         [WebMethod]
         public string TargetCarrier_GetTargetFreightWithBOLwithOrderNumber(string orderNumber)
         {
-            string queryID = "0";
             freight_API freight = new freight_API();
-            queryID = freight.Target_Carrier_GetQueryID(orderNumber);
-            string bol = freight.ExecuteBillsOfLading(queryID);
-            return bol;
+            freight.orderNumber = orderNumber;
+            freight = freight.ExecuteBillsOfLading(freight);
+            string pickupStatus = string.Empty;
+            pickupStatus = freight.PickupRequest(freight);
+            string bolResult = freight.PrintBillOfLading(freight.bolId, freight.bolDate);
+            string bolLabelResult = freight.PrintLabel(freight.bolId, freight.bolDate, "1");
+            string filePath = $"{bolResult};{bolLabelResult}";
+            string bolemail = freight.SendEmailWithBOLAttachment(orderNumber, filePath, $"{pickupStatus}");
+            return $"Execute BOL - {freight.comment} | Pickup Result : {pickupStatus} | Email Result : {bolemail}";
         }
 
         [WebMethod]
@@ -125,10 +124,13 @@ namespace UseAPI
         }
 
         [WebMethod]
-        public string TargetCarrier_PickupRequest(string queryID, string bolID)
+        public string TargetCarrier_PickupRequest(string queryID, string bolDate, string bolID)
         {
             freight_API freight = new freight_API();
-            string result = freight.PickupRequest(queryID, bolID);
+            freight.bolQueryId = queryID;
+            freight.bolId = bolID;
+            freight.bolDate = bolDate;
+            string result = freight.PickupRequest(freight);
             return result;
         }
 
@@ -136,11 +138,11 @@ namespace UseAPI
         public string getTargetFreightWithBOL()
         {
             freight_API freight = new freight_API();
-            freight.shipperZip = "53207";
-            freight.consigneeZip = "59411";
-            freight.weight = "2716";
+            freight.shipperZip = "30339";
+            freight.consigneeZip = "77034";
+            freight.weight = "23000";
             freight.freightClass = "110";
-            freight.orderNumber = "2223270";
+            freight.orderNumber = "2232360";
             DataTable dt = freight.GetTargetFreightwithBOL(freight);
 
             string queryID = "0";

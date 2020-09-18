@@ -10,6 +10,7 @@ using System.Data;
 using System.Collections.Specialized;
 using System.Configuration;
 using System.Text.RegularExpressions;
+using UseAPI.repository;
 
 namespace UseAPI
 {
@@ -20,6 +21,12 @@ namespace UseAPI
         public string weight { get; set; }
         public string freightClass { get; set; }
         public string orderNumber { get; set; }
+        public string bolId { get; set; }
+        public string bolDate { get; set; }
+        public string bolQueryId { get; set; }
+        public string comment { get; set; }
+        public string apiName { get; set; }
+        public string apiURL { get; set; }
 
 
         public string IsLocal()
@@ -252,148 +259,21 @@ namespace UseAPI
             return queryId;
         }
 
-        public string ExecuteBillsOfLading(string queryID)
+        public freight_API ExecuteBillsOfLading(freight_API request)
         {
-            Dictionary<string, string> postValues = new Dictionary<string, string>();
-            SqlParameter[] parameter = {
-                new SqlParameter("@queryID",queryID)
-                ,new SqlParameter("@LinesPerPage", 1)
-                ,new SqlParameter("@NumberOfCopies", 1)
-            };
-            string orderNumber = "0";
+            Target_Carrier_SendBOL_PostValues TargetApiCall = new Target_Carrier_SendBOL_PostValues();
+            request.apiName = "ExecuteBillsOfLading";
+            request.apiURL = "Http://targetfmitms.com/index.php?p=api&r=xml&c=billoflading&m=execute";
 
-            DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_BOL_Data", parameter);
-            int count = 0;
-            var nmfc = "0";
-            var subnmfc = "";
-            string copies = "0";
-
-            foreach (DataTable dt in dsBOL.Tables)
-            {
-                orderNumber = Regex.Replace(dt.Rows[0].ItemArray[7].ToString(),"-","");
-                postValues.Add("carrier[query_id]", queryID);
-                postValues.Add("carrier[carrier_scac]", dt.Rows[0].ItemArray[39].ToString());
-                postValues.Add("general[pro]", "");
-                postValues.Add("general[saved_bol]", "");
-                postValues.Add("general[bol]", dt.Rows[0].ItemArray[18].ToString());
-                postValues.Add("general[ref]", "");
-                postValues.Add("general[warehouse]", "ASPENLIC");
-                postValues.Add("general[direction]", dt.Rows[0].ItemArray[50].ToString());
-                postValues.Add("general[so]", dt.Rows[0].ItemArray[7].ToString());
-                postValues.Add("general[po]", dt.Rows[0].ItemArray[10].ToString());
-                postValues.Add("general[customer_date]", dt.Rows[0].ItemArray[20].ToString());
-
-                postValues.Add("general[references][0][type]", "RIS#");
-                postValues.Add("general[references][0][value]", orderNumber);
-                postValues.Add("general[references][1][type]", "Deliver By");
-                postValues.Add("general[references][1][value]", dt.Rows[0].ItemArray[20].ToString());
-
-                postValues.Add("location[shipper][name]", dt.Rows[0].ItemArray[23].ToString());
-                postValues.Add("location[shipper][address1]", dt.Rows[0].ItemArray[24].ToString());
-                postValues.Add("location[shipper][address2]", dt.Rows[0].ItemArray[25].ToString());
-                postValues.Add("location[shipper][city]", dt.Rows[0].ItemArray[46].ToString());
-                postValues.Add("location[shipper][state]", dt.Rows[0].ItemArray[47].ToString());
-                postValues.Add("location[shipper][zip]", dt.Rows[0].ItemArray[43].ToString());
-                postValues.Add("location[shipper][country]", "USA");
-                postValues.Add("location[shipper][contact_name]", "");
-                postValues.Add("location[shipper][contact_phone]", "");
-                postValues.Add("location[shipper][contact_fax]", "");
-                postValues.Add("location[shipper][contact_email]", "");
-                postValues.Add("location[shipper][save]", "False");
-                postValues.Add("location[consignee][name]", dt.Rows[0].ItemArray[14].ToString());
-                postValues.Add("location[consignee][address1]", dt.Rows[0].ItemArray[15].ToString());
-                postValues.Add("location[consignee][address2]", dt.Rows[0].ItemArray[16].ToString());
-                postValues.Add("location[consignee][city]", dt.Rows[0].ItemArray[44].ToString());
-                postValues.Add("location[consignee][state]", dt.Rows[0].ItemArray[45].ToString());
-                postValues.Add("location[consignee][zip]", dt.Rows[0].ItemArray[42].ToString());
-                postValues.Add("location[consignee][country]", "USA");
-                postValues.Add("location[consignee][contact_name]", "");
-                postValues.Add("location[consignee][contact_phone]", "");
-                postValues.Add("location[consignee][contact_fax]", "");
-                postValues.Add("location[consignee][contact_email]", "");
-                postValues.Add("location[consignee][save]", "False");
-                postValues.Add("location[billing][name]", "ASPEN Refrigerants, Inc. C/O TFM");
-                postValues.Add("location[billing][address1]", "5905 Brownsville Rd.");
-                postValues.Add("location[billing][address2]", "");
-                postValues.Add("location[billing][city]", "Pittsburgh");
-                postValues.Add("location[billing][state]", "PA");
-                postValues.Add("location[billing][zip]", "15236");
-                postValues.Add("location[billing][country]", "USA");
-                postValues.Add("location[billing][contact_name]", "Customer Service");
-                postValues.Add("location[billing][contact_phone]", "412-653-1323");
-                postValues.Add("location[billing][contact_fax]", "412-653-1908");
-                postValues.Add("location[billing][contact_email]", "customerservice@targetfmi.com");
-                postValues.Add("location[billing][save]", "False");
-                postValues.Add("special[notes]", dt.Rows[0].ItemArray[21].ToString());
-
-                foreach (DataRow dr in dt.Rows)
-                {
-                    nmfc = dr.ItemArray[40].ToString();
-                    if (nmfc == "41160")
-                    {
-                        subnmfc = "02";
-                    }else
-                    {
-                        subnmfc = "";
-                    }
-                    postValues.Add($"units[{count}][details][pieces]", "1");
-                    postValues.Add($"units[{count}][details][stack]", "False");
-                    postValues.Add($"units[{count}][details][type]", "Pallet");
-                    postValues.Add($"units[{count}][details][length]", "1");
-                    postValues.Add($"units[{count}][details][width]", "1");
-                    postValues.Add($"units[{count}][details][height]", "1");
-                    postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()}");
-                    postValues.Add($"units[{count}][products][0][pieces]", dr.ItemArray[29].ToString());
-                    postValues.Add($"units[{count}][products][0][uom]", "Cylinder");
-                    postValues.Add($"units[{count}][products][0][nmfc]", nmfc);
-                    postValues.Add($"units[{count}][products][0][sub_nmfc]", subnmfc);
-                    postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[41].ToString());
-                    postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[31].ToString());
-                    postValues.Add($"units[{count}][products][0][hazmat]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][class]", dr.ItemArray[51].ToString()); /* 2.2 */
-                    postValues.Add($"units[{count}][products][0][hazmat][un_num]", dr.ItemArray[52].ToString());/* UN */
-                    postValues.Add($"units[{count}][products][0][hazmat][group]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][packing_inst]", $"{ dr.ItemArray[32].ToString()}");
-                    postValues.Add($"units[{count}][products][0][hazmat][emergency]", "Chemtrec 1-800-424-9300 CCN829305");
-                    count++;
-                }
-            }
-
-            string strURL = string.Format("Http://targetfmitms.com/index.php?p=api&r=xml&c=billoflading&m=execute");
-            String pwd = String.Format("{0}:{1}", "d5db5543-af3c-4eb6-8073-fc0e98195f06", "");
-            Byte[] authBytes = Encoding.UTF8.GetBytes(pwd.ToCharArray());
-            var result = "None";
-            string postData = "";
-
-            foreach (string key in postValues.Keys)
-            {
-                postData += HttpUtility.UrlEncode(key) + "="
-                      + HttpUtility.UrlEncode(postValues[key]) + "&";
-            }
-            HttpWebRequest requestObjPost = (HttpWebRequest)HttpWebRequest.Create(strURL);
-            requestObjPost.Method = "POST";
-            byte[] byteArray = Encoding.ASCII.GetBytes(postData);
-            requestObjPost.ContentType = "application/x-www-form-urlencoded";
-            requestObjPost.Headers[HttpRequestHeader.Authorization] = $"Basic { Convert.ToBase64String(authBytes)}";
-
-            using (var streamWriter = new StreamWriter(requestObjPost.GetRequestStream()))
-            {
-                streamWriter.Write(postData);
-                streamWriter.Flush();
-                streamWriter.Close();
-
-                var httpResponse = (HttpWebResponse)requestObjPost.GetResponse();
-
-                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-                {
-                    result = streamReader.ReadToEnd();
-                }
-            }
+            freight_API apiResult = TargetApiCall.Target_Carrier_Call(request);
+            var result = apiResult.comment;
+            string queryId = apiResult.bolQueryId;            
 
             int okContinue = result.IndexOf("<type>error</type>"); // if -1 returned no errors found
             if (okContinue != -1)
             {
-                return result;
+                request.comment = result;
+                return request;
             }
             else
             {
@@ -415,13 +295,12 @@ namespace UseAPI
                         bolDate = (ds.Tables["body"].Rows[i]["date"].ToString());
                     }
                 }
-                //bolId = $"{bolDate}{bolId}";
-                string pickupStatus = PickupRequest(queryID, $"{bolDate}{bolId}");
-                string bolResult = PrintBillOfLading(bolId, bolDate);
-                string bolLabelResult = PrintLabel(bolId, bolDate, "1");
-                string filePath = $"{bolResult};{bolLabelResult}";
-                SendEmailWithBOLAttachment(orderNumber, filePath, $"{pickupStatus}");
-                return $"Pickup Response - {pickupStatus} - Print PDF filepaths - {filePath}";
+
+                request.bolDate = bolDate;
+                request.bolId = bolId;
+                request.bolQueryId = queryId;
+                request.comment = $"BOL Id - {bolDate}{bolId} Succesful. ";
+                return request;
             }
         }
 
@@ -544,7 +423,7 @@ namespace UseAPI
             };
 
             DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_SendEmailWithBOLAttachment", parameter);
-            return "done";
+            return "BOL Emailed";
         }
 
         public DataTable GetTargetFreightwithBOL(freight_API freightValues)
@@ -557,34 +436,43 @@ namespace UseAPI
             string queryID = "0";
             int count = 0;
             string shipmentType = "Outbound/Prepaid";
+            string addAccessorial = string.Empty;
 
             Dictionary<string, string> postValues = new Dictionary<string, string>();
 
             SqlParameter[] parameter = {
                 new SqlParameter("@orderNumber",freightValues.orderNumber)
-                ,new SqlParameter("@LinesPerPage", 1)
-                ,new SqlParameter("@NumberOfCopies", 1)
             };
-            DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_GetOrderDetails", parameter);
+            DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_GetOrderDetailsV2", parameter);
             foreach (DataTable tbl in dsBOL.Tables)
             {
                 foreach (DataRow dr in tbl.Rows)
                 {
-                    string numberOfunits = dr.ItemArray[2].ToString();
+                    string pieces = dr.ItemArray[2].ToString();
+                    string accessorials = dr.ItemArray[8].ToString();
+                    string num_of = dr.ItemArray[9].ToString();
                     shipmentType = dr.ItemArray[7].ToString();
+
                     postValues.Add($"units[{count}][type]", "Cylinder");
                     postValues.Add($"units[{count}][stack]", "No");
                     postValues.Add($"units[{count}][length]", "1");
                     postValues.Add($"units[{count}][width]", "1");
                     postValues.Add($"units[{count}][height]", "1");
-                    postValues.Add($"units[{count}][products][0][pieces]", numberOfunits);
-                    postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[4].ToString());
+                    postValues.Add($"units[{count}][num_of]", num_of);
+                    postValues.Add($"units[{count}][products][0][pieces]", pieces);
+                    postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[10].ToString());
                     postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[6].ToString());
-                    postValues.Add($"units[{count}][num_of]", "1");
+                    if (accessorials != "0")
+                    {
+                        addAccessorial = "add";
+                    }
                     count++;
                 }
             }
-
+            if (addAccessorial == "add")
+            {
+                postValues.Add($"accessorials[0]", "420");
+            }
             postValues.Add("general[code]", "ASPENLIC");
             postValues.Add("general[shipper]", freightValues.shipperZip);
             postValues.Add("general[consignee]", freightValues.consigneeZip);
@@ -714,151 +602,173 @@ namespace UseAPI
             return dt;
         }
 
-        public string PickupRequest(string queryID, string bolId)
+        public string PickupRequest(freight_API request)
         {
-            Dictionary<string, string> postValues = new Dictionary<string, string>();
-
-            SqlParameter[] parameter = {
-                new SqlParameter("@queryID",queryID)
-                ,new SqlParameter("@LinesPerPage", 1)
-                ,new SqlParameter("@NumberOfCopies", 1)
-            };
-            string orderNumber = "0";
             string pronumber = "0";
             string confirmationnumber = "0";
             string transactionID = "0";
             string pickupdate = "0";
             string expectedDeliveryDate = "0";
-            var nmfc = "0";
-            var subnmfc = "";
 
-            DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_BOL_Data", parameter);
-            int count = 0;
-            foreach (DataTable dt in dsBOL.Tables)
-            {
-                orderNumber = Regex.Replace(dt.Rows[0].ItemArray[7].ToString(), "-", "");
-                postValues.Add("carrier[query_id]", queryID);
-                postValues.Add("carrier[carrier_scac]", dt.Rows[0].ItemArray[39].ToString());
-                postValues.Add("general[pro]", "");
-                postValues.Add("general[saved_bol]", bolId);
-                postValues.Add("general[bol]", dt.Rows[0].ItemArray[18].ToString());
-                postValues.Add("general[ref]", "");
-                postValues.Add("general[warehouse]", "ASPENLIC");
-                postValues.Add("general[direction]", dt.Rows[0].ItemArray[50].ToString());
-                postValues.Add("general[so]", dt.Rows[0].ItemArray[7].ToString());
-                postValues.Add("general[po]", dt.Rows[0].ItemArray[10].ToString());
-                postValues.Add("general[customer_date]", dt.Rows[0].ItemArray[20].ToString());
+            Target_Carrier_SendBOL_PostValues TargetApiCall = new Target_Carrier_SendBOL_PostValues();
+            request.apiName = "PickupRequest";
+            request.apiURL = "Http://targetfmitms.com/index.php?p=api&r=xml&c=pickupRequest&m=schedulePickup";
 
-                postValues.Add("general[references][0][type]", "RIS#");
-                postValues.Add("general[references][0][value]", orderNumber);
-                postValues.Add("general[references][1][type]", "Deliver By");
-                postValues.Add("general[references][1][value]", dt.Rows[0].ItemArray[20].ToString());
+            freight_API apiResult = TargetApiCall.Target_Carrier_Call(request);
+            var result = apiResult.comment;
 
-                postValues.Add("location[shipper][name]", dt.Rows[0].ItemArray[23].ToString());
-                postValues.Add("location[shipper][address1]", dt.Rows[0].ItemArray[24].ToString());
-                postValues.Add("location[shipper][address2]", dt.Rows[0].ItemArray[25].ToString());
-                postValues.Add("location[shipper][city]", dt.Rows[0].ItemArray[46].ToString());
-                postValues.Add("location[shipper][state]", dt.Rows[0].ItemArray[47].ToString());
-                postValues.Add("location[shipper][zip]", dt.Rows[0].ItemArray[43].ToString());
-                postValues.Add("location[shipper][country]", "USA");
-                postValues.Add("location[shipper][contact_name]", "");
-                postValues.Add("location[shipper][contact_phone]", "");
-                postValues.Add("location[shipper][contact_fax]", "");
-                postValues.Add("location[shipper][contact_email]", "");
-                postValues.Add("location[shipper][save]", "False");
-                postValues.Add("location[consignee][name]", dt.Rows[0].ItemArray[14].ToString());
-                postValues.Add("location[consignee][address1]", dt.Rows[0].ItemArray[15].ToString());
-                postValues.Add("location[consignee][address2]", dt.Rows[0].ItemArray[16].ToString());
-                postValues.Add("location[consignee][city]", dt.Rows[0].ItemArray[44].ToString());
-                postValues.Add("location[consignee][state]", dt.Rows[0].ItemArray[45].ToString());
-                postValues.Add("location[consignee][zip]", dt.Rows[0].ItemArray[42].ToString());
-                postValues.Add("location[consignee][country]", "USA");
-                postValues.Add("location[consignee][contact_name]", "");
-                postValues.Add("location[consignee][contact_phone]", "");
-                postValues.Add("location[consignee][contact_fax]", "");
-                postValues.Add("location[consignee][contact_email]", "");
-                postValues.Add("location[consignee][save]", "False");
-                postValues.Add("location[billing][name]", "ASPEN Refrigerants, Inc. C/O TFM");
-                postValues.Add("location[billing][address1]", "5905 Brownsville Rd.");
-                postValues.Add("location[billing][address2]", "");
-                postValues.Add("location[billing][city]", "Pittsburgh");
-                postValues.Add("location[billing][state]", "PA");
-                postValues.Add("location[billing][zip]", "15236");
-                postValues.Add("location[billing][country]", "USA");
-                postValues.Add("location[billing][contact_name]", "Customer Service");
-                postValues.Add("location[billing][contact_phone]", "412-653-1323");
-                postValues.Add("location[billing][contact_fax]", "412-653-1908");
-                postValues.Add("location[billing][contact_email]", "customerservice@targetfmi.com");
-                postValues.Add("location[billing][save]", "False");
-                postValues.Add("special[notes]", dt.Rows[0].ItemArray[21].ToString());
+            //Dictionary<string, string> postValues = new Dictionary<string, string>();
 
-                foreach (DataRow dr in dt.Rows)
-                {
-                    nmfc = dr.ItemArray[40].ToString();
-                    if (nmfc == "41160")
-                    {
-                        subnmfc = "02";
-                    }
-                    else
-                    {
-                        subnmfc = "";
-                    }
-                    postValues.Add($"units[{count}][details][pieces]", "1");
-                    postValues.Add($"units[{count}][details][stack]", "False");
-                    postValues.Add($"units[{count}][details][type]", "Pallet");
-                    postValues.Add($"units[{count}][details][length]", "1");
-                    postValues.Add($"units[{count}][details][width]", "1");
-                    postValues.Add($"units[{count}][details][height]", "1");
-                    postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()}");
-                    postValues.Add($"units[{count}][products][0][pieces]", dr.ItemArray[29].ToString());
-                    postValues.Add($"units[{count}][products][0][uom]", "Cylinder");
-                    postValues.Add($"units[{count}][products][0][nmfc]", nmfc);
-                    postValues.Add($"units[{count}][products][0][sub_nmfc]", subnmfc);
-                    postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[41].ToString());
-                    postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[31].ToString());
-                    postValues.Add($"units[{count}][products][0][hazmat]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][class]", dr.ItemArray[51].ToString()); /* 2.2 */
-                    postValues.Add($"units[{count}][products][0][hazmat][un_num]", dr.ItemArray[52].ToString());/* UN */
-                    postValues.Add($"units[{count}][products][0][hazmat][group]", "");
-                    postValues.Add($"units[{count}][products][0][hazmat][packing_inst]", $"{ dr.ItemArray[32].ToString()}");
-                    postValues.Add($"units[{count}][products][0][hazmat][emergency]", "Chemtrec 1-800-424-9300 CCN829305");
-                    count++;
-                }
+            //SqlParameter[] parameter = {
+            //    new SqlParameter("@orderNumber",request.orderNumber)
+            //};
 
-                postValues.Add("schedulePickup[pickupDateTime]", dt.Rows[0].ItemArray[48].ToString());
-                postValues.Add("schedulePickup[dockCloseTime]", dt.Rows[0].ItemArray[49].ToString());
-            }
+            //string orderNumber = "0";
+            //string pronumber = "0";
+            //string confirmationnumber = "0";
+            //string transactionID = "0";
+            //string pickupdate = "0";
+            //string expectedDeliveryDate = "0";
+            //var nmfc = "0";
+            //var subnmfc = "";
+            //string queryID = string.Empty;
+            //string accessorials = string.Empty;
 
-            string strURL = string.Format("Http://targetfmitms.com/index.php?p=api&r=xml&c=pickupRequest&m=schedulePickup");
-            String pwd = String.Format("{0}:{1}", "d5db5543-af3c-4eb6-8073-fc0e98195f06", "");
-            Byte[] authBytes = Encoding.UTF8.GetBytes(pwd.ToCharArray());
-            var result = "None";
-            string postData = "";
+            //DataSet dsBOL = ExecuteProcedureReturnDataSet("Target_Carriers_BOL_DataV2", parameter);
+            //int count = 0;
+            //foreach (DataTable dt in dsBOL.Tables)
+            //{
+            //    orderNumber = Regex.Replace(dt.Rows[0].ItemArray[7].ToString(), "-", "");
+            //    queryID = dt.Rows[0].ItemArray[60].ToString();
+            //    accessorials = dt.Rows[0].ItemArray[57].ToString();
 
-            foreach (string key in postValues.Keys)
-            {
-                postData += HttpUtility.UrlEncode(key) + "="
-                      + HttpUtility.UrlEncode(postValues[key]) + "&";
-            }
-            HttpWebRequest requestObjPost = (HttpWebRequest)HttpWebRequest.Create(strURL);
-            requestObjPost.Method = "POST";
-            byte[] byteArray = Encoding.ASCII.GetBytes(postData);
-            requestObjPost.ContentType = "application/x-www-form-urlencoded";
-            requestObjPost.Headers[HttpRequestHeader.Authorization] = $"Basic { Convert.ToBase64String(authBytes)}";
+            //    postValues.Add("carrier[query_id]", queryID);
+            //    postValues.Add("carrier[carrier_scac]", dt.Rows[0].ItemArray[39].ToString());
+            //    postValues.Add("general[pro]", "");
+            //    postValues.Add("general[saved_bol]", $"{request.bolDate}{request.bolId}");
+            //    postValues.Add("general[bol]", dt.Rows[0].ItemArray[18].ToString());
+            //    postValues.Add("general[ref]", "");
+            //    postValues.Add("general[warehouse]", "ASPENLIC");
+            //    postValues.Add("general[direction]", dt.Rows[0].ItemArray[50].ToString());
+            //    postValues.Add("general[so]", dt.Rows[0].ItemArray[7].ToString());
+            //    postValues.Add("general[po]", dt.Rows[0].ItemArray[10].ToString());
+            //    postValues.Add("general[custom_date]", dt.Rows[0].ItemArray[54].ToString());
 
-            using (var streamWriter = new StreamWriter(requestObjPost.GetRequestStream()))
-            {
-                streamWriter.Write(postData);
-                streamWriter.Flush();
-                streamWriter.Close();
+            //    postValues.Add("general[references][0][type]", "RIS#");
+            //    postValues.Add("general[references][0][value]", orderNumber);
+            //    postValues.Add("general[references][1][type]", "Deliver By");
+            //    postValues.Add("general[references][1][value]", dt.Rows[0].ItemArray[20].ToString());
 
-                var httpResponse = (HttpWebResponse)requestObjPost.GetResponse();
+            //    postValues.Add("location[shipper][name]", dt.Rows[0].ItemArray[23].ToString());
+            //    postValues.Add("location[shipper][address1]", dt.Rows[0].ItemArray[24].ToString());
+            //    postValues.Add("location[shipper][address2]", dt.Rows[0].ItemArray[25].ToString());
+            //    postValues.Add("location[shipper][city]", dt.Rows[0].ItemArray[46].ToString());
+            //    postValues.Add("location[shipper][state]", dt.Rows[0].ItemArray[47].ToString());
+            //    postValues.Add("location[shipper][zip]", dt.Rows[0].ItemArray[43].ToString());
+            //    postValues.Add("location[shipper][country]", "USA");
+            //    postValues.Add("location[shipper][contact_name]", "");
+            //    postValues.Add("location[shipper][contact_phone]", "");
+            //    postValues.Add("location[shipper][contact_fax]", "");
+            //    postValues.Add("location[shipper][contact_email]", "");
+            //    postValues.Add("location[shipper][save]", "False");
+            //    postValues.Add("location[consignee][name]", dt.Rows[0].ItemArray[14].ToString());
+            //    postValues.Add("location[consignee][address1]", dt.Rows[0].ItemArray[15].ToString());
+            //    postValues.Add("location[consignee][address2]", dt.Rows[0].ItemArray[16].ToString());
+            //    postValues.Add("location[consignee][city]", dt.Rows[0].ItemArray[44].ToString());
+            //    postValues.Add("location[consignee][state]", dt.Rows[0].ItemArray[45].ToString());
+            //    postValues.Add("location[consignee][zip]", dt.Rows[0].ItemArray[42].ToString());
+            //    postValues.Add("location[consignee][country]", "USA");
+            //    postValues.Add("location[consignee][contact_name]", "");
+            //    postValues.Add("location[consignee][contact_phone]", "");
+            //    postValues.Add("location[consignee][contact_fax]", "");
+            //    postValues.Add("location[consignee][contact_email]", "");
+            //    postValues.Add("location[consignee][save]", "False");
+            //    postValues.Add("location[billing][name]", "ASPEN Refrigerants, Inc. C/O TFM");
+            //    postValues.Add("location[billing][address1]", "5905 Brownsville Rd.");
+            //    postValues.Add("location[billing][address2]", "");
+            //    postValues.Add("location[billing][city]", "Pittsburgh");
+            //    postValues.Add("location[billing][state]", "PA");
+            //    postValues.Add("location[billing][zip]", "15236");
+            //    postValues.Add("location[billing][country]", "USA");
+            //    postValues.Add("location[billing][contact_name]", "Customer Service");
+            //    postValues.Add("location[billing][contact_phone]", "412-653-1323");
+            //    postValues.Add("location[billing][contact_fax]", "412-653-1908");
+            //    postValues.Add("location[billing][contact_email]", "customerservice@targetfmi.com");
+            //    postValues.Add("location[billing][save]", "False");
+            //    postValues.Add("special[notes]", dt.Rows[0].ItemArray[21].ToString());
 
-                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
-                {
-                    result = streamReader.ReadToEnd();
-                }
-            }
+            //    //if (accessorials != "0")
+            //    //{
+            //    //    postValues.Add($"accessorials", dt.Rows[0].ItemArray[57].ToString());
+            //    //}
+
+            //    foreach (DataRow dr in dt.Rows)
+            //    {
+            //        nmfc = dr.ItemArray[40].ToString();
+            //        if (nmfc == "41160")
+            //        {
+            //            subnmfc = "02";
+            //        }
+            //        else
+            //        {
+            //            subnmfc = "";
+            //        }
+            //        postValues.Add($"units[{count}][details][pieces]", dr.ItemArray[56].ToString());
+            //        postValues.Add($"units[{count}][details][stack]", "False");
+            //        postValues.Add($"units[{count}][details][type]", "Pallet");
+            //        postValues.Add($"units[{count}][details][length]", "1");
+            //        postValues.Add($"units[{count}][details][width]", "1");
+            //        postValues.Add($"units[{count}][details][height]", "1");
+            //        postValues.Add($"units[{count}][products][0][product]", $"{dr.ItemArray[34].ToString()}");
+            //        postValues.Add($"units[{count}][products][0][pieces]", dr.ItemArray[58].ToString());
+            //        postValues.Add($"units[{count}][products][0][uom]", "Cylinder");
+            //        postValues.Add($"units[{count}][products][0][nmfc]", nmfc);
+            //        postValues.Add($"units[{count}][products][0][sub_nmfc]", subnmfc);
+            //        postValues.Add($"units[{count}][products][0][class]", dr.ItemArray[41].ToString());
+            //        postValues.Add($"units[{count}][products][0][weight]", dr.ItemArray[61].ToString());
+            //        postValues.Add($"units[{count}][products][0][hazmat]", "");
+            //        postValues.Add($"units[{count}][products][0][hazmat][class]", dr.ItemArray[51].ToString()); /* 2.2 */
+            //        postValues.Add($"units[{count}][products][0][hazmat][un_num]", dr.ItemArray[52].ToString());/* UN */
+            //        postValues.Add($"units[{count}][products][0][hazmat][group]", "");
+            //        postValues.Add($"units[{count}][products][0][hazmat][packing_inst]", $"{ dr.ItemArray[32].ToString()}");
+            //        postValues.Add($"units[{count}][products][0][hazmat][emergency]", "Chemtrec 1-800-424-9300 CCN829305");
+            //        count++;
+            //    }
+
+            //    postValues.Add("schedulePickup[pickupDateTime]", dt.Rows[0].ItemArray[48].ToString());
+            //    postValues.Add("schedulePickup[dockCloseTime]", dt.Rows[0].ItemArray[49].ToString());
+            //}
+
+            //string strURL = string.Format("Http://targetfmitms.com/index.php?p=api&r=xml&c=pickupRequest&m=schedulePickup");
+            //String pwd = String.Format("{0}:{1}", "d5db5543-af3c-4eb6-8073-fc0e98195f06", "");
+            //Byte[] authBytes = Encoding.UTF8.GetBytes(pwd.ToCharArray());
+            //var result = "None";
+            //string postData = "";
+
+            //foreach (string key in postValues.Keys)
+            //{
+            //    postData += HttpUtility.UrlEncode(key) + "="
+            //          + HttpUtility.UrlEncode(postValues[key]) + "&";
+            //}
+            //HttpWebRequest requestObjPost = (HttpWebRequest)HttpWebRequest.Create(strURL);
+            //requestObjPost.Method = "POST";
+            //byte[] byteArray = Encoding.ASCII.GetBytes(postData);
+            //requestObjPost.ContentType = "application/x-www-form-urlencoded";
+            //requestObjPost.Headers[HttpRequestHeader.Authorization] = $"Basic { Convert.ToBase64String(authBytes)}";
+
+            //using (var streamWriter = new StreamWriter(requestObjPost.GetRequestStream()))
+            //{
+            //    streamWriter.Write(postData);
+            //    streamWriter.Flush();
+            //    streamWriter.Close();
+
+            //    var httpResponse = (HttpWebResponse)requestObjPost.GetResponse();
+
+            //    using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+            //    {
+            //        result = streamReader.ReadToEnd();
+            //    }
+            //}
 
             int okContinue = result.IndexOf("<type>success</type>"); // if -1 returned no errors found
             if (okContinue == -1)
@@ -898,7 +808,7 @@ namespace UseAPI
                     }
                     result = "Success";
                 }
-                return $"Pronumber-{pronumber}|Confirmation Number-{confirmationnumber}|Transaction ID-{transactionID}|Pickup Date-{pickupdate}|Expected Delivery Date-{expectedDeliveryDate}|PickupRequest Result - {result}";
+                return $"Pronumber-{pronumber}<br>Confirmation Number-{confirmationnumber}<br>Transaction ID-{transactionID}<br>Pickup Date-{pickupdate}<br>Expected Delivery Date-{expectedDeliveryDate}<br>PickupRequest Result - {result}<br>TARGET Internal BOL ID {request.bolDate}{request.bolQueryId}";
             }
         }
     }
